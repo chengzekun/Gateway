@@ -26,7 +26,7 @@ func (fields Fields) Contain(field string) bool {
 	return false
 }
 
-type Response struct {
+type GatewayResponse struct {
 	Msg    string   `json:"msg"`
 	Fields ServInfo `json:"fields"`
 }
@@ -48,22 +48,22 @@ func HandleServerRegisterAndUpdate(c *gin.Context) {
 		svr, err := Register(packet.SvrInfo)
 
 		if err != nil {
-			res := Response{Msg: err.Error()}
+			res := GatewayResponse{Msg: err.Error()}
 			c.JSON(400, res)
 			return
 		}
 
-		res := Response{Msg: "Succeeded", Fields: svr}
+		res := GatewayResponse{Msg: "Succeeded", Fields: svr}
 		c.JSON(200, res)
 		return
 	} else if packet.Op == UpdateOp {
 		// 判断是否存在对应的Server
 		if svr, exist := EdgeServers.Svrs[packet.ServerId]; exist {
 			svr.Update(packet)
-			c.JSON(200, Response{Msg: "Succeeded", Fields: svr.Infos})
+			c.JSON(200, GatewayResponse{Msg: "Succeeded", Fields: svr.Infos})
 			return
 		}
 	}
-	c.JSON(400, Response{Msg: "Can not parse right operation"})
+	c.JSON(400, GatewayResponse{Msg: "Can not parse right operation"})
 	return
 }

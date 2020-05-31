@@ -121,7 +121,10 @@ func (svr *Server) Update(updatePacket *RegisterOrUpdate) {
 	}
 
 	if Fields(updatePacket.ModifiedFields).Contain("shutdown") {
-		// TODO: 断开连接的逻辑
+		EdgeServers.RWLock.Lock()
+		defer EdgeServers.RWLock.Unlock()
+		delete(EdgeServers.Svrs, updatePacket.ServerId)
+		return
 	}
 
 	// 如果ReqURL 发生了变更，可能会涉及到修改EdgeServers中的Svrs的key信息

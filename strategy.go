@@ -37,6 +37,7 @@ func update() {
 }
 
 func BalanceWeightRandom() (*Server, error) {
+	// 其实不应该在这里update，否则每次都update开销会很大
 	update()
 	rwLock.RLock()
 	defer rwLock.RUnlock()
@@ -51,7 +52,7 @@ func BalanceWeightRandom() (*Server, error) {
 	for _, svr := range servers {
 		randWt -= svr.Infos.Weight
 		if randWt < 0 {
-			log.Printf("Choose the server : %+v", svr)
+			log.Printf("Choose the server : %+v", svr.Infos)
 			return &svr, nil
 		}
 	}
