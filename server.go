@@ -79,7 +79,7 @@ func (svr *Server) Clone() Server {
 			LastUpdate: svr.Infos.LastUpdate}}
 }
 
-// 注册时必须要包含：CPU核心数，内存容量，接收请求的URL
+// Register 注册时必须要包含：CPU核心数，内存容量，接收请求的URL
 func Register(servInfos ServInfo) (ServInfo, error) {
 	log.Printf("Server info is %+v", servInfos)
 	EdgeServers.RWLock.Lock()
@@ -98,12 +98,13 @@ func Register(servInfos ServInfo) (ServInfo, error) {
 	svr.Infos.Id = hashId
 	svr.Touch()
 	EdgeServers.Svrs[hashId] = &svr
+	// 通知更新
+	infoUpdateChan <- true
 	return svr.Infos, nil
 }
 
-// 可以更新的参数主要包括：权重，核心数，内存，请求的URL，shutdown，AvgTime
+// Update 可以更新的参数主要包括：权重，核心数，内存，请求的URL，shutdown，AvgTime
 func (svr *Server) Update(updatePacket *RegisterOrUpdate) {
-
 	if Fields(updatePacket.ModifiedFields).Contain("weight") {
 		svr.SetWeight(updatePacket.SvrInfo.Weight)
 	}
@@ -138,6 +139,9 @@ func (svr *Server) Update(updatePacket *RegisterOrUpdate) {
 		EdgeServers.Svrs[newId] = svr
 	}
 
+	if len(updatePacket.ModifiedFields) > 0 {
+		infoUpdateChan <- true
+	}
 	svr.Touch()
 }
 

@@ -10,23 +10,29 @@ import (
 )
 
 var (
-	servers []Server
-	rwLock  sync.RWMutex
+	servers        []Server
+	rwLock         sync.RWMutex
+	infoUpdateChan chan bool
 )
 
 func updateServInfos(ctx context.Context, t int64) {
 	for {
 		select {
-		case <-time.After(time.Duration(t) * time.Millisecond):
+		case <-time.After(time.Duration(t) * time.Millisecond): // 定期更新
 			rwLock.Lock()
 			update()
 			rwLock.Unlock()
-		case <-ctx.Done():
+		case <-infoUpdateChan: // server 更新报文触发
+			rwLock.Lock()
+			update()
+			rwLock.Unlock()
+		case <-ctx.Done(): // 结束
 			return
 		}
 	}
 }
 
+// update 更新server的信息
 func update() {
 	EdgeServers.RWLock.RLock()
 	defer EdgeServers.RWLock.RUnlock()
@@ -36,9 +42,8 @@ func update() {
 	}
 }
 
+// BalanceWeightRandom 从servers 数组中根据权重随机的出一个server来提供服务
 func BalanceWeightRandom() (*Server, error) {
-	// 其实不应该在这里update，否则每次都update开销会很大
-	update()
 	rwLock.RLock()
 	defer rwLock.RUnlock()
 	// 计算权重的总和

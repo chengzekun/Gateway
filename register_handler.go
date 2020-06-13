@@ -36,6 +36,7 @@ const (
 	UpdateOp   = 2
 )
 
+// HandleServerRegisterAndUpdate 接收server的注册和更新以及心跳检测
 func HandleServerRegisterAndUpdate(c *gin.Context) {
 	packet := &RegisterOrUpdate{}
 	err := c.BindJSON(packet)
