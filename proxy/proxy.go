@@ -2,10 +2,15 @@ package proxy
 
 import (
 	"Gateway/svrpool"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+)
+
+const (
+	retryTimes = 2
 )
 
 func Proxy(c *gin.Context) {
@@ -22,16 +27,23 @@ func Proxy(c *gin.Context) {
 	}
 	var scheduler svrpool.Scheduler
 	scheduler, ok = schedulerInstance.(svrpool.Scheduler)
-	invoker, err := scheduler.Select()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": "can not get one instance", "rsp": nil})
+
+	var invoker svrpool.Invoker
+	for i := 0; i < retryTimes; i++ {
+		invoker, err = scheduler.Select()
+		if err != nil {
+			continue
+
+		}
+		var rsp []byte
+		rsp, err = invoker.Invoke(body)
+		if err != nil {
+			continue
+
+		}
+		c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "Success", "rsp": string(rsp)})
 		return
 	}
-	rsp, err := invoker.Invoke(body)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": -1, "msg": "request for service failed", "rsp": nil})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"code": 0, "msg": "Success", "rsp": string(rsp)})
+	c.JSON(http.StatusBadRequest, gin.H{"code": -1, "msg": fmt.Sprintf("%v", err), "rsp": nil})
 	return
 }
